@@ -17,11 +17,6 @@ namespace WeFly{
         public Airplane_Characteristics characteristics;
         public Transform centerOfGravity;
         public Transform interactionCollider;
-        public TextMesh text;
-
-        public bool boarded = false;
-
-        private Transform driver;
 
         [Tooltip("Kg")]
         public float airplaneweight = 800f;
@@ -32,6 +27,8 @@ namespace WeFly{
 
         [Header("Wheels")]
         public List<Airplane_Wheels> wheels = new List<Airplane_Wheels>();
+
+        public bool boarded;
 
         public override void Start()
         {
@@ -56,12 +53,6 @@ namespace WeFly{
                 }
             }
 
-        }
-
-        void Update() {
-            if(boarded) {
-                HandleWorldInteractions();
-            }       
         }
 
         protected override void HandlePhysics()
@@ -95,30 +86,9 @@ namespace WeFly{
         void HandleWheel() {
             if (wheels.Count > 0){
                 foreach(Airplane_Wheels wheel in wheels) {
-                    wheel.HandleWheel(input);
+                    wheel.HandleWheel(input, !boarded);
                 }
             }
         }
-
-
-        void HandleWorldInteractions(){
-            //Check if it's safe to unboard
-            if(characteristics.normalizedMPH < 0.03f && boarded) {
-                //Display in UI
-                text.text="Exit";
-                if(Input.GetKeyDown(KeyCode.E)) {
-                    text.text="";
-                    controller_Manager.CharacterGettingOffPlane();
-                }
-            } else {
-                text.text="";
-            }
-        }
-       
-
-        public void HandlePlaneBoarded(bool Boarded) {
-            boarded = Boarded;
-        }
-        
     }
 }

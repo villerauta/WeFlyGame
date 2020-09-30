@@ -7,10 +7,10 @@ public class Basic_Follow_Camera : MonoBehaviour
     [Header("Basic Follow Camera Properties")]
     public Transform target;
     public float distance = 5f;
-    public float characterDistanceFactor = 2f;
+    public float characterDistanceFactor = 0.7f;
     public float height = 2f;
-    public float smoothSpeed = 0.5f;
-    public float freeLookSmooth = 0.1f;
+    public float smoothSpeed = 0.05f;
+    public float freeLookSmooth = 0.01f;
     public float distanceToTarget = 0f;
 
 
@@ -25,8 +25,8 @@ public class Basic_Follow_Camera : MonoBehaviour
     public float maxYRot = 45f;
     public float minYRot = 5f;
 
-    public float maxYRot3rd = 45f;
-    public float minYRot3rd = 5f;
+    public float maxYRot3rd = 30f;
+    public float minYRot3rd = 10f;
 
     //Rotations
     private float xRotation;

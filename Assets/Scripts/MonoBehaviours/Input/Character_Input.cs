@@ -9,6 +9,10 @@ namespace WeFly {
         public Transform cam;
         public CharacterController controller;
         public WeFly.Controller_Manager controller_Manager;
+        public WeFly.Airplane_Controller airplane_Controller;
+        public CameraFollowPoint cameraFollowPoint;
+
+        public SaveData playerSaveData;
 
         //Movement variables
         public float speed = 5f;
@@ -23,8 +27,9 @@ namespace WeFly {
         //Character State
         public bool isActive = true;
         public bool allowMovement = true;
+        public bool allowInteraction = true;
         private bool _inDialogue = false;
-        public bool onAirplane = false;
+        public bool _inAirplane = false;
 
         //Interaction variables
         public TextMesh text;
@@ -34,21 +39,41 @@ namespace WeFly {
         protected Vector3 interactionDirection;
         private WaitForSeconds interactionHold;
 
+        public const string startingPositionKey = "starting position";
+
+        private Interactable aimedInteractable;
+
         public Vector3 Direction
             {
                 get{return direction;}
             }
 
+        IEnumerator WaitForInteraction() {
+            
+            allowInteraction = false;
+            yield return interactionHold;
+            allowInteraction = true;
+        }
 
         private void Start() {
-            interactionHold = new WaitForSeconds(3f);
+            interactionHold = new WaitForSeconds(0.5f);
             controller.detectCollisions = false;
+
+            string startPosName = "";
+            playerSaveData.Load(startingPositionKey, ref startPosName);
+            Transform startingPosition = StartingPosition.FindStartingPosition(startPosName);
+
+            transform.position = startingPosition.position;
+            transform.rotation = startingPosition.rotation;
+
         }
         void Update()
         {
-            if(isActive){
+            if (allowMovement){
                 HanldeMovement();
-                HandleInteraction();
+            }
+            if (allowInteraction) {
+                HandleInteraction(); 
             }
             
         }
@@ -80,38 +105,65 @@ namespace WeFly {
         }
 
         void HandleInteraction() {
-            //
             // Handle character interaction and sensing interactables
-            //
-            interactionDirection = cam.transform.forward;
-            interactionDirection.y = 0f;
 
-            //TODO Make char model with origin in the geometric centre
-            Vector3 torso = transform.position;
-            torso.y += 0.5f;
-
-            ray = new Ray(torso,interactionDirection);
-            Debug.DrawRay(torso,interactionDirection,Color.blue);
-
-            if(Physics.Raycast(ray,out hit,senseDistance)){
-                
-                //Check what Raycast hit
-                //TODO: Change to look for "Interactables" only
-                if(hit.collider.tag == "plane") {
-                    text.text = "Press E to board the plane";
-                     if(Input.GetKeyDown(KeyCode.E)) {
-                        controller_Manager.InteractWithPlane();
-                    } 
-                 } else if (hit.collider.tag == "NPC") {
-                    if(Input.GetKeyDown(KeyCode.E) & !_inDialogue) {
-                        _inDialogue = true;
-                        //hit.collider.gameObject.GetComponent<DialogueTrigger>().TriggerDialogue();
+            if (_inAirplane) {
+                if (airplane_Controller.characteristics.normalizedMPH < 0.03f) {
+                    text.text = "Exit";
+                    if(Input.GetKeyDown(KeyCode.E)) {
+                        text.text = "";
+                        StartCoroutine(WaitForInteraction());
+                        controller_Manager.CharacterGettingOffPlane();
+                        _inAirplane = false;
                     }
-                } 
-
+                } else {
+                    text.text = "";
+                }
             } else {
-                text.text = "";
+                interactionDirection = cam.transform.forward;
+                interactionDirection.y = 0f;
+
+                //TODO Make char model with origin in the geometric centre
+                Vector3 torso = transform.position;
+                torso.y += 0.5f;
+
+                ray = new Ray(torso,interactionDirection);
+                Debug.DrawRay(torso,interactionDirection,Color.red);
+
+                if(Physics.Raycast(ray,out hit,senseDistance)){
+                    
+                    //Check what Raycast hit
+                    //TODO: Change to look for "Interactables" only
+                    if(hit.collider.GetComponent<Interactable>() != null) {
+                        aimedInteractable = hit.collider.GetComponent<Interactable>();
+                        text.text = aimedInteractable.interactionText;
+                        if (Input.GetKeyDown(KeyCode.E)) {
+                            text.text = "";
+                            StartCoroutine(WaitForInteraction());
+                            aimedInteractable.Interact();
+                        }
+                    }
+                    if(hit.collider.tag == "plane") {
+                        text.text = "Enter";
+                        if(Input.GetKeyDown(KeyCode.E)) {
+                            text.text = "";
+                            StartCoroutine(WaitForInteraction());
+                            controller_Manager.CharacterBoardingPlane();
+                            _inAirplane = true;
+                        } 
+                    } else if (hit.collider.tag == "NPC") {
+                        if(Input.GetKeyDown(KeyCode.E) & !_inDialogue) {
+                            _inDialogue = true;
+                            //hit.collider.gameObject.GetComponent<DialogueTrigger>().TriggerDialogue();
+                        }
+                    } 
+
+                } else {
+                    text.text = "";
+                }
             }
+
+            
         }
 
     }

@@ -6,14 +6,8 @@ namespace WeFly {
     public class Controller_Manager : MonoBehaviour
     {
         private Basic_Follow_Camera mainCamera;
-        public WeFly.Character_Input character;
-        public CharacterController characterController;
+        private WeFly.Character_Input character;
         private WeFly.Airplane_Controller airplane;
-        public Transform airplaneTransform;
-        private bool characterOnBoard;
-
-        private Controlled currentControlled = Controlled.Alfonso;
-
 
         private enum Controlled {
             None,
@@ -21,56 +15,29 @@ namespace WeFly {
             Plane
         }
 
-        IEnumerator WaitForPlaneInteraction() {
-            
-            Debug.Log("Coroutine started");
-            yield return new WaitForSeconds(2f);
-            Debug.Log("Coroutine ended");
-        }
-
-        // Start is called before the first frame update
         void Start()
         {
             Application.targetFrameRate = 60;
             mainCamera = FindObjectOfType<Basic_Follow_Camera>();
             airplane = FindObjectOfType<WeFly.Airplane_Controller>();
-            airplane.HandlePlaneBoarded(false);
             character = FindObjectOfType<WeFly.Character_Input>();
-        }
-
-        public void InteractWithPlane() {
-            switch (currentControlled) {
-                case Controlled.None:
-                    Debug.Log("Error: None in control");
-                    break;
-                case Controlled.Alfonso:
-                    //Alfonso in control, so board the plane
-                    CharacterBoardingPlane();
-                    StartCoroutine(WaitForPlaneInteraction());
-                    break;
-                case Controlled.Plane:
-                    //Plane in control, so unboard Alfonso
-                    CharacterGettingOffPlane();
-                    StartCoroutine(WaitForPlaneInteraction());
-                    break;
-            }
         }
         public void CharacterBoardingPlane() {
             //Character Controller needs to be disabled to move the player through transform.position
-            characterController.enabled = false;
+            airplane.boarded = true;
+            character.controller.enabled = false;
+            character.transform.SetParent(airplane.transform);
             ChangeControl(Controlled.Plane);
-            airplane.HandlePlaneBoarded(true);
-            mainCamera.target = airplaneTransform;
-            //characterOnBoard = true;
+            mainCamera.target = airplane.transform;
         } 
         public void CharacterGettingOffPlane() {
             //Character controller enabled AFTER transform.position
-            characterController.transform.position = airplane.transform.position;
-            characterController.enabled = true;
+            airplane.boarded = false;
+            character.transform.SetParent(null);
+            character.transform.position = airplane.transform.position;
+            character.controller.enabled = true;
             ChangeControl(Controlled.Alfonso);
-            airplane.HandlePlaneBoarded(false);
-            mainCamera.target = character.transform;
-            characterOnBoard = false;
+            mainCamera.target = character.cameraFollowPoint.transform;
         }
 
         public void CharacterInDialogue(bool inDialogue) {
@@ -82,21 +49,16 @@ namespace WeFly {
             
             switch (controlled) {
                 case Controlled.None:
-                    currentControlled = Controlled.None;
                     Debug.Log("None in control");
-                    character.isActive = false;
+                    character.allowMovement = false;
                     airplane.input.isActive = false;
                     break;
                 case Controlled.Alfonso:
-                    currentControlled = Controlled.Alfonso;
-                    Debug.Log("Alfonso in control");
                     airplane.input.isActive = false;
-                    character.isActive = true;
+                    character.allowMovement = true;
                     break;
                 case Controlled.Plane:
-                    currentControlled = Controlled.Plane;
-                    Debug.Log("Plane in control");
-                    character.isActive = false;
+                    character.allowMovement = false;
                     airplane.input.isActive = true;
                     break;
             }

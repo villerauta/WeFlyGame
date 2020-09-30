@@ -30,7 +30,7 @@ namespace WeFly {
             }
         }
 
-        public void HandleWheel(BaseAirplane_Input input) {
+        public void HandleWheel(BaseAirplane_Input input, bool handbrake) {
             if (WheelCol) {
                 WheelCol.GetWorldPose(out worldPos, out worldRot);
                 if (WheelGraphic) {
@@ -39,8 +39,11 @@ namespace WeFly {
                 }
                 
                 if (isBraking )
-                {    
-                    if (input.Brake > 0.1f) {
+                {   if (handbrake) {
+                        finalBrakeForce = Mathf.Lerp(finalBrakeForce, 1f * brakePower, Time.deltaTime);
+                        WheelCol.brakeTorque = finalBrakeForce;
+                    }
+                    else if (input.Brake > 0.1f) {
                         finalBrakeForce = Mathf.Lerp(finalBrakeForce, input.Brake * brakePower, Time.deltaTime);
                         WheelCol.brakeTorque = finalBrakeForce;
                     } else {
@@ -54,6 +57,11 @@ namespace WeFly {
                     WheelCol.steerAngle = -input.Yaw * steeringAngle;
                 }
             }
+        }
+
+        public void HandleHandbrake() {
+            finalBrakeForce = Mathf.Lerp(finalBrakeForce, 1f * brakePower, Time.deltaTime);
+            WheelCol.brakeTorque = finalBrakeForce;
         }
         
     }
