@@ -11,6 +11,8 @@ namespace WeFly{
         [Header("Game Logic Components")]
         public Controller_Manager controller_Manager;
         public WeFly.Character_Input character_Input;
+        public Transform sittingPos;
+        public GameObject CollisionGroup;
 
         [Header("Base Airplane Properties")]
         public BaseAirplane_Input input;

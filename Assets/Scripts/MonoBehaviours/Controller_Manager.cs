@@ -9,6 +9,8 @@ namespace WeFly {
         private WeFly.Character_Input character;
         private WeFly.Airplane_Controller airplane;
 
+        private WaitForSeconds jumpHold;
+
         private enum Controlled {
             None,
             Alfonso,
@@ -17,25 +19,21 @@ namespace WeFly {
 
         void Start()
         {
-            Application.targetFrameRate = 60;
+            jumpHold = new WaitForSeconds(0.5f);
+            Application.targetFrameRate = 144;
             mainCamera = FindObjectOfType<Basic_Follow_Camera>();
             airplane = FindObjectOfType<WeFly.Airplane_Controller>();
             character = FindObjectOfType<WeFly.Character_Input>();
         }
         public void CharacterBoardingPlane() {
-            //Character Controller needs to be disabled to move the player through transform.position
             airplane.boarded = true;
-            character.controller.enabled = false;
-            character.transform.SetParent(airplane.transform);
+            //character.transform.SetParent(airplane.transform);
             ChangeControl(Controlled.Plane);
             mainCamera.target = airplane.transform;
         } 
         public void CharacterGettingOffPlane() {
-            //Character controller enabled AFTER transform.position
             airplane.boarded = false;
             character.transform.SetParent(null);
-            character.transform.position = airplane.transform.position;
-            character.controller.enabled = true;
             ChangeControl(Controlled.Alfonso);
             mainCamera.target = character.cameraFollowPoint.transform;
         }

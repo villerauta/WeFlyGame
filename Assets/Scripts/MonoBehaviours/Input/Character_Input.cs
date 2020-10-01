@@ -22,14 +22,17 @@ namespace WeFly {
         public float turnSmoothVelocity;
 
         //Gravitational force
-        public float gravity = 5f;
+        public float gravity = -5f;
     
         //Character State
         public bool isActive = true;
         public bool allowMovement = true;
+        public bool _allowInput = true;
         public bool allowInteraction = true;
         private bool _inDialogue = false;
         public bool _inAirplane = false;
+        public bool _isJumping = false;
+        private Vector3 jumpTarget = Vector3.zero;
 
         //Interaction variables
         public TextMesh text;
@@ -38,6 +41,8 @@ namespace WeFly {
         private RaycastHit hit;
         protected Vector3 interactionDirection;
         private WaitForSeconds interactionHold;
+
+        private WaitForSeconds jumpHold;
 
         public const string startingPositionKey = "starting position";
 
@@ -55,6 +60,21 @@ namespace WeFly {
             allowInteraction = true;
         }
 
+        IEnumerator PlaneInteraction() {
+            //Move Airplane to airplane layer
+
+
+            Debug.Log("Jump start");
+            //isJumping to override normal movement
+            _isJumping = true;
+            //Jump one time
+            playerVelocity.y += Mathf.Sqrt(20f * -1.0f * gravity);
+            yield return interactionHold;
+            _isJumping = false;
+            Debug.Log("Jump stop");
+            _inAirplane = true;
+        }
+
         private void Start() {
             interactionHold = new WaitForSeconds(0.5f);
             controller.detectCollisions = false;
@@ -69,16 +89,33 @@ namespace WeFly {
         }
         void Update()
         {
-            if (allowMovement){
-                HanldeMovement();
-            }
-            if (allowInteraction) {
-                HandleInteraction(); 
-            }
+            if(_isJumping) {
+                HandleJump();
+                Debug.Log("Jumping");
+            } 
+            else {
             
+                if (allowMovement){
+                    HanldeMovement();
+                }
+                if (allowInteraction) {
+                    HandleInteraction(); 
+                }
+                if (controller.isGrounded && playerVelocity.y < 0) {
+                    playerVelocity.y = 0;
+                }
+            }    
         }
+
+        void HandleJump(){
+            //Move player to jumpPosition
+            playerVelocity.y += gravity*4 * Time.deltaTime;
+            controller.Move(playerVelocity*Time.deltaTime);
+        }
+
         void HanldeMovement() {
-            if(allowMovement) {
+            if(allowMovement) { 
+
                 //Calculate movement direction
                 Vector3 direction = new Vector3(Input.GetAxis("Horizontal"),0f,Input.GetAxis("Vertical")).normalized;
 
@@ -99,10 +136,11 @@ namespace WeFly {
                     animator.SetBool("isRunning",false);
                 }
                 //Gravity pulls player down
-                playerVelocity.y -= gravity;
+                playerVelocity.y += gravity*4 * Time.deltaTime;
                 controller.Move(playerVelocity*Time.deltaTime);
             }
         }
+
 
         void HandleInteraction() {
             // Handle character interaction and sensing interactables
@@ -113,13 +151,16 @@ namespace WeFly {
                     if(Input.GetKeyDown(KeyCode.E)) {
                         text.text = "";
                         StartCoroutine(WaitForInteraction());
+                        controller.enabled = true;
                         controller_Manager.CharacterGettingOffPlane();
                         _inAirplane = false;
                     }
-                } else {
+                } 
+                else {
                     text.text = "";
                 }
-            } else {
+            } 
+            else {
                 interactionDirection = cam.transform.forward;
                 interactionDirection.y = 0f;
 
@@ -146,10 +187,11 @@ namespace WeFly {
                     if(hit.collider.tag == "plane") {
                         text.text = "Enter";
                         if(Input.GetKeyDown(KeyCode.E)) {
+                            jumpTarget = airplane_Controller.sittingPos.transform.position;
                             text.text = "";
-                            StartCoroutine(WaitForInteraction());
-                            controller_Manager.CharacterBoardingPlane();
-                            _inAirplane = true;
+                            StartCoroutine(PlaneInteraction());
+                            //controller_Manager.CharacterBoardingPlane();
+                            
                         } 
                     } else if (hit.collider.tag == "NPC") {
                         if(Input.GetKeyDown(KeyCode.E) & !_inDialogue) {
@@ -163,7 +205,6 @@ namespace WeFly {
                 }
             }
 
-            
         }
 
     }

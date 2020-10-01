@@ -88,10 +88,11 @@ public class Basic_Follow_Camera : MonoBehaviour
     void HandleCharacterCamera() {
         
         Vector3 wantedPosition = target.position +(-target.forward * distance) + (Vector3.up * height);
-        
+        transform.LookAt(target);
+
         CharacterFollow(wantedPosition);
         
-        transform.LookAt(target);
+        
     }
 
     void PlaneFreeLookCamera() {
@@ -146,7 +147,7 @@ public class Basic_Follow_Camera : MonoBehaviour
 
         Vector3 newPos = xMove + yMove;
         Vector3 freeLookPos = target.position + newPos.normalized*distance*characterDistanceFactor;
-        transform.position = Vector3.SmoothDamp(transform.position,freeLookPos, ref smoothVelocity,freeLookSmooth);
+        //transform.position = Vector3.SmoothDamp(transform.position,freeLookPos, ref smoothVelocity,freeLookSmooth);
     }
 
 
