@@ -41,7 +41,7 @@ namespace WeFly {
         private RaycastHit hit;
         protected Vector3 interactionDirection;
         private WaitForSeconds interactionHold;
-
+        private WaitUntil waitForJump;
         private WaitForSeconds jumpHold;
 
         public const string startingPositionKey = "starting position";
@@ -63,13 +63,14 @@ namespace WeFly {
         IEnumerator PlaneInteraction() {
             //Move Airplane to airplane layer
 
-
-            Debug.Log("Jump start");
             //isJumping to override normal movement
             _isJumping = true;
+
             //Jump one time
             playerVelocity.y += Mathf.Sqrt(20f * -1.0f * gravity);
-            yield return interactionHold;
+
+            //All jumps to and from plane should take fixed amount of time
+            yield return jumpHold;
             _isJumping = false;
             Debug.Log("Jump stop");
             _inAirplane = true;
@@ -77,6 +78,8 @@ namespace WeFly {
 
         private void Start() {
             interactionHold = new WaitForSeconds(0.5f);
+            jumpHold = new WaitForSeconds(1f);
+
             controller.detectCollisions = false;
 
             string startPosName = "";
@@ -108,6 +111,7 @@ namespace WeFly {
         }
 
         void HandleJump(){
+            //playerVelocity = (transform.position - jumpTarget) * Time.deltaTime;
             //Move player to jumpPosition
             playerVelocity.y += gravity*4 * Time.deltaTime;
             controller.Move(playerVelocity*Time.deltaTime);
@@ -190,7 +194,7 @@ namespace WeFly {
                             jumpTarget = airplane_Controller.sittingPos.transform.position;
                             text.text = "";
                             StartCoroutine(PlaneInteraction());
-                            //controller_Manager.CharacterBoardingPlane();
+                            controller_Manager.CharacterBoardingPlane();
                             
                         } 
                     } else if (hit.collider.tag == "NPC") {
