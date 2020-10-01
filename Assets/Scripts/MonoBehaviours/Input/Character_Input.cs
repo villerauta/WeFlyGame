@@ -116,7 +116,7 @@ namespace WeFly {
         void HandleJump(){
             t += Time.deltaTime/0.5f;
             transform.position = Vector3.Lerp(jumpStart, jumpTarget, t);
-            transform.position = 
+             
             /* playerVelocity.y += gravity*4 * Time.deltaTime;
             controller.Move(playerVelocity*Time.deltaTime); */
         }
