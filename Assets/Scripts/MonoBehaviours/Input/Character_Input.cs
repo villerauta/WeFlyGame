@@ -32,7 +32,10 @@ namespace WeFly {
         private bool _inDialogue = false;
         public bool _inAirplane = false;
         public bool _isJumping = false;
+
         private Vector3 jumpTarget = Vector3.zero;
+        private Vector3 jumpStart = Vector3.zero;
+        private float t = 1f;
 
         //Interaction variables
         public TextMesh text;
@@ -61,24 +64,24 @@ namespace WeFly {
         }
 
         IEnumerator PlaneInteraction() {
-            //Move Airplane to airplane layer
+            jumpStart = transform.position;
+            t = 0;
+            controller.enabled = false;
 
             //isJumping to override normal movement
             _isJumping = true;
 
-            //Jump one time
-            playerVelocity.y += Mathf.Sqrt(20f * -1.0f * gravity);
-
-            //All jumps to and from plane should take fixed amount of time
-            yield return jumpHold;
+            yield return interactionHold;
             _isJumping = false;
+
             Debug.Log("Jump stop");
             _inAirplane = true;
+            controller.enabled = true;
+
         }
 
         private void Start() {
             interactionHold = new WaitForSeconds(0.5f);
-            jumpHold = new WaitForSeconds(1f);
 
             controller.detectCollisions = false;
 
@@ -111,10 +114,11 @@ namespace WeFly {
         }
 
         void HandleJump(){
-            //playerVelocity = (transform.position - jumpTarget) * Time.deltaTime;
-            //Move player to jumpPosition
-            playerVelocity.y += gravity*4 * Time.deltaTime;
-            controller.Move(playerVelocity*Time.deltaTime);
+            t += Time.deltaTime/0.5f;
+            transform.position = Vector3.Lerp(jumpStart, jumpTarget, t);
+            transform.position = 
+            /* playerVelocity.y += gravity*4 * Time.deltaTime;
+            controller.Move(playerVelocity*Time.deltaTime); */
         }
 
         void HanldeMovement() {
