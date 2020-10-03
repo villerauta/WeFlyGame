@@ -9,7 +9,6 @@ namespace WeFly {
         private WeFly.Character_Input character;
         private WeFly.Airplane_Controller airplane;
 
-        private WaitForSeconds jumpHold;
 
         private enum Controlled {
             None,
@@ -19,7 +18,6 @@ namespace WeFly {
 
         void Start()
         {
-            jumpHold = new WaitForSeconds(0.5f);
             Application.targetFrameRate = 144;
             mainCamera = FindObjectOfType<Basic_Follow_Camera>();
             airplane = FindObjectOfType<WeFly.Airplane_Controller>();
@@ -27,7 +25,7 @@ namespace WeFly {
         }
         public void CharacterBoardingPlane() {
             airplane.boarded = true;
-            //character.transform.SetParent(airplane.transform);
+            character.transform.SetParent(airplane.transform);
             ChangeControl(Controlled.Plane);
             mainCamera.target = airplane.transform;
         } 

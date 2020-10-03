@@ -12,6 +12,7 @@ namespace WeFly{
         public Controller_Manager controller_Manager;
         public WeFly.Character_Input character_Input;
         public Transform sittingPos;
+        public Transform exitPos;
         public GameObject CollisionGroup;
 
         [Header("Base Airplane Properties")]

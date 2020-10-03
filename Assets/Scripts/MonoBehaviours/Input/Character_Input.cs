@@ -23,7 +23,7 @@ namespace WeFly {
 
         //Gravitational force
         public float gravity = -5f;
-    
+
         //Character State
         public bool isActive = true;
         public bool allowMovement = true;
@@ -43,9 +43,8 @@ namespace WeFly {
         private Ray ray;
         private RaycastHit hit;
         protected Vector3 interactionDirection;
+        private float interactionDuration = 0.5f;
         private WaitForSeconds interactionHold;
-        private WaitUntil waitForJump;
-        private WaitForSeconds jumpHold;
 
         public const string startingPositionKey = "starting position";
 
@@ -57,31 +56,38 @@ namespace WeFly {
             }
 
         IEnumerator WaitForInteraction() {
-            
+
             allowInteraction = false;
             yield return interactionHold;
             allowInteraction = true;
         }
 
-        IEnumerator PlaneInteraction() {
+        IEnumerator EnterAirplane() {
+            jumpTarget = airplane_Controller.sittingPos.transform.position;
             jumpStart = transform.position;
             t = 0;
             controller.enabled = false;
-
-            //isJumping to override normal movement
             _isJumping = true;
-
             yield return interactionHold;
+            transform.rotation = airplane_Controller.sittingPos.transform.rotation;
             _isJumping = false;
-
-            Debug.Log("Jump stop");
             _inAirplane = true;
-            controller.enabled = true;
+        }
 
+        IEnumerator ExitAirplane() {
+            jumpTarget = airplane_Controller.exitPos.transform.position;
+            jumpStart = transform.position;
+            t = 0;
+            _isJumping = true;
+            yield return interactionHold;
+            transform.rotation = airplane_Controller.sittingPos.transform.rotation;
+            _isJumping = false;
+            _inAirplane = false;
+            controller.enabled = true;
         }
 
         private void Start() {
-            interactionHold = new WaitForSeconds(0.5f);
+            interactionHold = new WaitForSeconds(interactionDuration);
 
             controller.detectCollisions = false;
 
@@ -96,57 +102,53 @@ namespace WeFly {
         void Update()
         {
             if(_isJumping) {
+                animator.SetBool("isRunning",false);
                 HandleJump();
-                Debug.Log("Jumping");
-            } 
+            }
             else {
-            
+
                 if (allowMovement){
                     HanldeMovement();
-                }
+                } 
+
                 if (allowInteraction) {
-                    HandleInteraction(); 
+                    HandleInteraction();
                 }
                 if (controller.isGrounded && playerVelocity.y < 0) {
                     playerVelocity.y = 0;
                 }
-            }    
+            }
         }
 
         void HandleJump(){
-            t += Time.deltaTime/0.5f;
+            t += Time.deltaTime/interactionDuration;
             transform.position = Vector3.Lerp(jumpStart, jumpTarget, t);
-             
-            /* playerVelocity.y += gravity*4 * Time.deltaTime;
-            controller.Move(playerVelocity*Time.deltaTime); */
         }
 
         void HanldeMovement() {
-            if(allowMovement) { 
+            //Calculate movement direction
+            Vector3 direction = new Vector3(Input.GetAxis("Horizontal"),0f,Input.GetAxis("Vertical")).normalized;
 
-                //Calculate movement direction
-                Vector3 direction = new Vector3(Input.GetAxis("Horizontal"),0f,Input.GetAxis("Vertical")).normalized;
+            if (direction.magnitude >= 0.1f) {
+                //Movement
+                animator.SetBool("isRunning",true);
 
-                if (direction.magnitude >= 0.1f) {
-                    //Movement
-                    animator.SetBool("isRunning",true);
+                //Model ange
+                float targetAngle = Mathf.Atan2(direction.x,direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
+                float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
+                transform.rotation = Quaternion.Euler(0f,angle,0f);
 
-                    //Model ange
-                    float targetAngle = Mathf.Atan2(direction.x,direction.z) * Mathf.Rad2Deg + cam.eulerAngles.y;
-                    float angle = Mathf.SmoothDampAngle(transform.eulerAngles.y, targetAngle, ref turnSmoothVelocity, turnSmoothTime);
-                    transform.rotation = Quaternion.Euler(0f,angle,0f);
-
-                    //Move player
-                    Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
-                    controller.Move(moveDir.normalized * speed * Time.deltaTime);
-                } else {
-                    // Not moving -> isRunning false
-                    animator.SetBool("isRunning",false);
-                }
-                //Gravity pulls player down
-                playerVelocity.y += gravity*4 * Time.deltaTime;
-                controller.Move(playerVelocity*Time.deltaTime);
+                //Move player
+                Vector3 moveDir = Quaternion.Euler(0f, targetAngle, 0f) * Vector3.forward;
+                controller.Move(moveDir.normalized * speed * Time.deltaTime);
+            } else {
+                // Not moving -> isRunning false
+                animator.SetBool("isRunning",false);
             }
+            //Gravity pulls player down
+            playerVelocity.y += gravity*4 * Time.deltaTime;
+            controller.Move(playerVelocity*Time.deltaTime);
+            
         }
 
 
@@ -158,16 +160,14 @@ namespace WeFly {
                     text.text = "Exit";
                     if(Input.GetKeyDown(KeyCode.E)) {
                         text.text = "";
-                        StartCoroutine(WaitForInteraction());
-                        controller.enabled = true;
+                        StartCoroutine(ExitAirplane());
                         controller_Manager.CharacterGettingOffPlane();
-                        _inAirplane = false;
                     }
-                } 
+                }
                 else {
                     text.text = "";
                 }
-            } 
+            }
             else {
                 interactionDirection = cam.transform.forward;
                 interactionDirection.y = 0f;
@@ -180,9 +180,6 @@ namespace WeFly {
                 Debug.DrawRay(torso,interactionDirection,Color.red);
 
                 if(Physics.Raycast(ray,out hit,senseDistance)){
-                    
-                    //Check what Raycast hit
-                    //TODO: Change to look for "Interactables" only
                     if(hit.collider.GetComponent<Interactable>() != null) {
                         aimedInteractable = hit.collider.GetComponent<Interactable>();
                         text.text = aimedInteractable.interactionText;
@@ -192,21 +189,18 @@ namespace WeFly {
                             aimedInteractable.Interact();
                         }
                     }
-                    if(hit.collider.tag == "plane") {
+                    else if(hit.collider.tag == "plane") {
                         text.text = "Enter";
                         if(Input.GetKeyDown(KeyCode.E)) {
-                            jumpTarget = airplane_Controller.sittingPos.transform.position;
                             text.text = "";
-                            StartCoroutine(PlaneInteraction());
+                            StartCoroutine(EnterAirplane());
                             controller_Manager.CharacterBoardingPlane();
-                            
-                        } 
-                    } else if (hit.collider.tag == "NPC") {
-                        if(Input.GetKeyDown(KeyCode.E) & !_inDialogue) {
-                            _inDialogue = true;
-                            //hit.collider.gameObject.GetComponent<DialogueTrigger>().TriggerDialogue();
+
                         }
                     } 
+                    else {
+                        text.text = "";
+                    }
 
                 } else {
                     text.text = "";
